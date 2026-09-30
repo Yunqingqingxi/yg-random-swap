@@ -1,0 +1,23 @@
+{
+	"schemaVersion": 1,
+	"id": "yg_swap",
+	"version": "${version}",
+	"name": "yunxigames 随机换位",
+	"description": "受伤随机互换位置：每次受伤都有概率与附近一个随机生物（或玩家）瞬间互换位置。",
+	"authors": [
+		"Yunqingqingxi"
+	],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.yunxigames.YunxiGamesSwap"
+		]
+	},
+	"depends": {
+		"fabricloader": "~0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}
