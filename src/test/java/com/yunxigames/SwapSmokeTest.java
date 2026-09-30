@@ -59,18 +59,17 @@ class SwapSmokeTest {
 				"load() 后配置文件必须已写回磁盘");
 		assertTrue(cfg.hurtSwapEnabled, "受伤换位默认开");
 		assertTrue(cfg.hurtSwapIncludePlayers, "换位池包含玩家（云兮定的玩法口径）");
-		assertEquals(1.0F, cfg.hurtSwapChance, "1.0.1 定版：必定换位");
 	}
 
 	@Test
 	void modifiedValuesSurviveSaveLoadRoundtrip() {
 		SwapConfig cfg = SwapConfig.load();
-		cfg.hurtSwapChance = 0.42F;
+		cfg.hurtSwapMaxRadius = 96.0D;
 		cfg.hurtSwapAnnounce = false;
 		cfg.save();
 
 		SwapConfig reloaded = SwapConfig.load();
-		assertEquals(0.42F, reloaded.hurtSwapChance);
+		assertEquals(96.0D, reloaded.hurtSwapMaxRadius);
 		assertFalse(reloaded.hurtSwapAnnounce, "写盘的 false 必须原样读回");
 	}
 }

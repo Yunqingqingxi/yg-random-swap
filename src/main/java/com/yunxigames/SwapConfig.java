@@ -30,31 +30,14 @@ public final class SwapConfig extends YgConfig {
 
 	// ---------- 受伤随机换位 ----------
 
-	/** 总开关：玩家受伤时按概率与附近随机一个活体（生物或其他玩家）互换位置。 */
+	/** 总开关：玩家掉血就直接与附近随机一个活体（生物或其他玩家）互换位置。 */
 	public boolean hurtSwapEnabled = true;
-
-	/**
-	 * 每次受伤触发换位的概率（0~1）。
-	 *
-	 * <p>默认 1.0 = 必定换位（1.0.1 定版玩法：玩家受到任何伤害都换）。
-	 * 觉得太频繁就在配置里调小 —— 1.0.0 的老配置里显式写的 0.15 会原样保留，
-	 * 想要新默认就删掉这一项让它重生成。
-	 */
-	public float hurtSwapChance = 1.0f;
 
 	/** 换位对象的搜索半径（格，默认 48：一般战斗场景里「附近」的合理范围）。 */
 	public double hurtSwapMaxRadius = 48.0;
 
 	/** 换位对象是否包含其他玩家（默认开：换位池 = 附近的生物 + 玩家）。 */
 	public boolean hurtSwapIncludePlayers = true;
-
-	/**
-	 * 生物受伤是否也触发换位（默认关）。
-	 *
-	 * <p>1.0.1 定版玩法：换位只由<b>玩家受伤</b>触发 —— 生物受伤不触发、生物之间不互换。
-	 * 想找回 1.0.0「万物互换」的全服混沌模式再把这项打开。
-	 */
-	public boolean hurtSwapMobsCanTrigger = false;
 
 	/** 换位后清空双方摔落距离（换到悬崖边不会因为对方攒的摔落白送摔死 —— 爽但不劝退）。 */
 	public boolean hurtSwapClearFallDistance = true;
@@ -147,7 +130,6 @@ public final class SwapConfig extends YgConfig {
 		if (entityBlacklist == null) entityBlacklist = new ArrayList<>();
 		entityBlacklistFilter = parseFilter(entityBlacklist, "entityBlacklist");
 
-		if (!(hurtSwapChance > 0.0f && hurtSwapChance <= 1.0f)) hurtSwapChance = 1.0f;
 		if (!(hurtSwapMaxRadius >= 8.0 && hurtSwapMaxRadius <= 256.0)) hurtSwapMaxRadius = 48.0;
 	}
 }

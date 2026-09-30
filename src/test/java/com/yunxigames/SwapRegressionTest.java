@@ -57,21 +57,22 @@ class SwapRegressionTest {
 	}
 
 	@Test
-	void legacyTunedChanceIsPreservedOnUpgrade() throws Exception {
-		// 1.0.0 的配置显式写 hurtSwapChance: 0.15 —— 升级 1.0.1 后必须原样保留
-		// （只有 json 缺项才取新默认 1.0，绝不偷改玩家调过的数值）
+	void legacyConfigWithRemovedFieldsStillLoads() throws Exception {
+		// 1.0.x 的老配置里有 hurtSwapChance / hurtSwapMobsCanTrigger（2.0.0 已删）——
+		// Gson 对未知字段天然忽略，load 必须成功且落到新口径（掉血直接换）
 		Files.writeString(configDir.resolve(SwapConfig.FILE_NAME),
-				"{\"hurtSwapChance\": 0.15, \"hurtSwapMobsCanTrigger\": true}");
+				"{\"hurtSwapEnabled\": true, \"hurtSwapChance\": 0.15, \"hurtSwapMobsCanTrigger\": true}");
 		SwapConfig cfg = SwapConfig.load();
-		assertEquals(0.15F, cfg.hurtSwapChance, "老配置调过的概率不能被新默认覆盖");
-		assertTrue(cfg.hurtSwapMobsCanTrigger, "老配置显式写的开关必须保留");
+		assertTrue(cfg.hurtSwapEnabled, "老配置必须能读，不能崩");
+		assertTrue(cfg.hurtSwapIncludePlayers, "换位池默认含玩家");
 	}
 
 	@Test
 	void newFieldsMissingInLegacyConfigTakeNewDefaults() throws Exception {
-		// 1.0.0 的老配置没有 hurtSwapMobsCanTrigger —— 缺项必须补新默认 false（生物不触发）
+		// 1.0.0 的老配置缺 2.0.0 的字段 —— 缺项必须补新默认
 		Files.writeString(configDir.resolve(SwapConfig.FILE_NAME), "{\"hurtSwapEnabled\": true}");
 		SwapConfig cfg = SwapConfig.load();
-		assertFalse(cfg.hurtSwapMobsCanTrigger, "缺项新字段补 1.0.1 默认 false");
+		assertTrue(cfg.hurtSwapIncludePlayers, "缺项布尔补 2.0.0 默认 true");
+		assertEquals(48.0D, cfg.hurtSwapMaxRadius, "缺项数值补 2.0.0 默认 48");
 	}
 }

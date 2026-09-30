@@ -1,6 +1,7 @@
 package com.yunxigames;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,8 +9,7 @@ import org.slf4j.LoggerFactory;
  * 随机换位包入口（yg_swap）：受伤随机互换位置。
  *
  * <p>本包自带 yg-core 基础库与自己的配置（{@code config/yg-swap.json}），可独立安装。
- * 没有任何持久化状态（换位是瞬时的，无内存清单），关服即新的一局，
- * 所以不需要注册 SERVER_STOPPING 清理。
+ * 玩法零持久化（换位是瞬时的），唯一内存态是「无对象提示」的限频表，关服时清掉。
  */
 public class YunxiGamesSwap implements ModInitializer {
 	public static final String MOD_ID = "yg_swap";
@@ -25,6 +25,8 @@ public class YunxiGamesSwap implements ModInitializer {
 		SelfTest.registerStep("㊱ 随机换位·配置+互换+筛选",
 				ctx -> SwapSelfTest.checkAll(ctx.server.overworld(), ctx.pos, SwapConfig.get()));
 		SelfTest.register(() -> SwapConfig.get().selfTestRolls);
+
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> HurtSwap.clearTransientState());
 
 		LOGGER.info("[yg-swap] 随机换位已加载");
 	}

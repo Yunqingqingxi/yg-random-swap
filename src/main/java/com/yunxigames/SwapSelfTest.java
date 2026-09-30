@@ -26,20 +26,18 @@ public final class SwapSelfTest {
 		checkConfig(config);
 		checkSwapMovesAndResets(level, pos, config);
 		checkPickExcludes(level, pos, config);
-		checkTriggerGate(level, pos, config);
 	}
 
 	/** ① 配置回显 + 加载后的值合法（钳制生效）。 */
 	private static void checkConfig(SwapConfig config) {
-		Yg.LOGGER.info("[yg-swap] 换位开关={} 概率={} 半径={} 含玩家={} 生物可触发={} 清摔落={} 播报={}",
-				config.hurtSwapEnabled, config.hurtSwapChance, config.hurtSwapMaxRadius,
-				config.hurtSwapIncludePlayers, config.hurtSwapMobsCanTrigger,
-				config.hurtSwapClearFallDistance, config.hurtSwapAnnounce);
+		Yg.LOGGER.info("[yg-swap] 换位开关={} 半径={} 含玩家={} 清摔落={} 播报={}",
+				config.hurtSwapEnabled, config.hurtSwapMaxRadius,
+				config.hurtSwapIncludePlayers, config.hurtSwapClearFallDistance,
+				config.hurtSwapAnnounce);
 
-		boolean ok = config.hurtSwapChance > 0.0f && config.hurtSwapChance <= 1.0f
-				&& config.hurtSwapMaxRadius >= 8.0 && config.hurtSwapMaxRadius <= 256.0;
+		boolean ok = config.hurtSwapMaxRadius >= 8.0 && config.hurtSwapMaxRadius <= 256.0;
 		SelfTest.check("① 换位·配置钳制", ok,
-				"chance=" + config.hurtSwapChance + " radius=" + SelfTest.trim(config.hurtSwapMaxRadius));
+				"radius=" + SelfTest.trim(config.hurtSwapMaxRadius));
 	}
 
 	/**
@@ -123,34 +121,5 @@ public final class SwapSelfTest {
 		SelfTest.check("③ 换位·对象筛选", armorStandExcluded && blacklistHit && distanceLimited,
 				"盔甲架不选=" + armorStandExcluded + " 黑名单命中=" + blacklistHit
 						+ " 距离上限生效=" + distanceLimited);
-	}
-
-	/**
-	 * ④ 触发门槛（1.0.1 定版）：生物受伤不触发换位，开关打开后恢复触发。
-	 * 玩家路径无法在空服造真玩家，触发门槛之外的「玩家受伤→换位」链路只能进服目视确认
-	 * （门槛之外的传送/清摔落/筛选逻辑已由 ②③ 覆盖）。
-	 */
-	private static void checkTriggerGate(ServerLevel level, BlockPos pos, SwapConfig config) {
-		LivingEntity pig = HurtSwap.spawnById(level, "minecraft:pig",
-				new Vec3(pos.getX() + 2.5, pos.getY(), pos.getZ() + 0.5));
-		if (pig == null) {
-			SelfTest.check("④ 换位·触发门槛", false, "造不出猪，环境不可测");
-			return;
-		}
-
-		boolean mobBlocked;
-		try {
-			mobBlocked = !HurtSwap.shouldTrigger(pig, config);
-		} finally {
-			pig.discard();
-		}
-
-		// 开关打开后生物恢复触发资格（1.0.0 混沌模式的兼容路径还在）
-		SwapConfig chaos = SwapConfig.blankForTest();
-		chaos.hurtSwapMobsCanTrigger = true;
-		boolean mobAllowedWhenEnabled = HurtSwap.shouldTrigger(pig, chaos);
-
-		SelfTest.check("④ 换位·触发门槛", mobBlocked && mobAllowedWhenEnabled,
-				"生物默认不触发=" + mobBlocked + " 开关放行=" + mobAllowedWhenEnabled);
 	}
 }

@@ -17,20 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SwapUnitTest {
 
 	@Test
-	void nanChanceFallsBackToDefault() {
+	void radiusBounds() {
 		SwapConfig cfg = new SwapConfig();
-		cfg.hurtSwapChance = Float.NaN;
-		cfg.validate();
-		assertEquals(1.0F, cfg.hurtSwapChance, "NaN 概率必须回落默认 1.0（必定换位）");
-	}
-
-	@Test
-	void chanceAndRadiusBounds() {
-		SwapConfig cfg = new SwapConfig();
-		cfg.hurtSwapChance = 1.5F;
 		cfg.hurtSwapMaxRadius = 3.0D;
 		cfg.validate();
-		assertEquals(1.0F, cfg.hurtSwapChance, "概率超过 1 回落默认");
 		assertEquals(48.0D, cfg.hurtSwapMaxRadius, "半径低于 8 回落默认 48");
 
 		cfg.hurtSwapMaxRadius = 1000.0D;
@@ -39,21 +29,19 @@ class SwapUnitTest {
 	}
 
 	@Test
-	void legalValuesPassThroughUnchanged() {
+	void legalRadiusPassesThroughUnchanged() {
 		SwapConfig cfg = new SwapConfig();
-		cfg.hurtSwapChance = 0.3F;
 		cfg.hurtSwapMaxRadius = 128.0D;
 		cfg.validate();
-		assertEquals(0.3F, cfg.hurtSwapChance, "调小概率是合法值（必定换位可调）");
 		assertEquals(128.0D, cfg.hurtSwapMaxRadius);
 	}
 
 	@Test
-	void defaultsAreThePlayerOnlyEdition() {
+	void defaultsAreTheKeepItSimpleEdition() {
 		SwapConfig cfg = new SwapConfig();
-		assertEquals(1.0F, cfg.hurtSwapChance, "1.0.1 定版：必定换位");
+		assertEquals(48.0D, cfg.hurtSwapMaxRadius);
 		assertTrue(cfg.hurtSwapIncludePlayers, "换位池 = 附近生物 + 玩家");
-		assertFalse(cfg.hurtSwapMobsCanTrigger, "生物受伤不触发（玩家单向触发）");
+		assertTrue(cfg.hurtSwapEnabled, "总开关默认开");
 	}
 
 	@Test

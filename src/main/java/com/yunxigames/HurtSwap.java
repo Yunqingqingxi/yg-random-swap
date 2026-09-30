@@ -22,13 +22,12 @@ import net.minecraft.world.phys.Vec3;
 /**
  * 受伤随机互换位置（yg_swap 的全部玩法）。
  *
- * <p><b>是什么</b>：玩家受到任何伤害后，按配置概率（默认 100%）与「附近随机一个活体」
- * —— 生物或其他玩家 —— 瞬间互换位置。摔落、岩浆、被咬，只要掉血就可能突然
- * 和 40 格外的苦力怕对视 —— 这就是本包的全部内容，纯混沌喜剧。
+ * <p><b>是什么</b>：玩家掉血就直接与「附近随机一个活体」—— 生物或其他玩家 ——
+ * 瞬间互换位置。摔落、岩浆、被咬，只要掉血就换，没有任何概率与来源判定。
+ * 打僵尸正欢突然和 40 格外的苦力怕对视 —— 这就是本包的全部内容，纯混沌喜剧。
  *
- * <p><b>触发点只有玩家（1.0.1 定版）</b>：生物受伤不触发、生物之间不互换 ——
- * 换位是给玩家设计的体验，怪互咬触发全场蹦迪只会刷屏。想找回全服混沌模式
- * 用 {@code hurtSwapMobsCanTrigger} 打开。
+ * <p><b>触发规则一句话</b>：只有<b>玩家掉血</b>才换（生物受伤不触发、生物之间不互换）。
+ * 没有概率掷骰、没有伤害来源白名单 —— 那些判定方式实测只制造「明明该换却没换」的困惑。
  *
  * <p><b>为什么挂 AFTER_DAMAGE 而不是 ALLOW_DAMAGE</b>：换位放在伤害结算之后，
  * 不参与「这次伤害是否成立」的判定，完全不打断原版伤害链路（护甲 / 药水 / 附魔保护
@@ -43,7 +42,17 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class HurtSwap {
 
+	/** 「附近没有可交换对象」提示的限频间隔（5 秒）。 */
+	private static final long HINT_INTERVAL_TICKS = 100L;
+	/** 限频表（内存态，零持久化 —— 关服即清）。 */
+	private static final java.util.Map<java.util.UUID, Long> LAST_HINT_AT = new java.util.HashMap<>();
+
 	private HurtSwap() {
+	}
+
+	/** 关服清理（包入口在 SERVER_STOPPING 调用）。 */
+	public static void clearTransientState() {
+		LAST_HINT_AT.clear();
 	}
 
 	/** 接入 Fabric 伤害事件（各包入口在 onInitialize 里调用）。 */
@@ -55,42 +64,43 @@ public final class HurtSwap {
 			float newHealth, boolean blocked) {
 		SwapConfig config = SwapConfig.get();
 
+		// 「掉血」= 伤害真的成立了：被格挡 / 零伤害 / 已经死了（死亡流程归掉落系统）都不算
 		if (!config.hurtSwapEnabled || blocked || amount <= 0.0f) {
 			return;
 		}
-		// 致死伤不换：死亡流程（掉落 / 战绩 / 播报）归各系统管，换位只服务活人
 		if (newHealth <= 0.0f || !entity.isAlive() || entity.isSpectator()) {
 			return;
 		}
-		// 触发门槛：玩家受伤（生物受伤不触发、生物之间不互换 —— 见类注释）
-		if (!shouldTrigger(entity, config)) {
-			return;
-		}
-		// 骑乘中的换位会把乘客和坐骑拆散到两处，体验差还容易卡 —— 直接不换
-		if (entity.isPassenger() || entity.isVehicle()) {
+		// 触发点只有一个：玩家掉血。生物受伤不触发、生物之间不互换
+		if (!(entity instanceof ServerPlayer)) {
 			return;
 		}
 		if (!(entity.level() instanceof ServerLevel level)) {
-			return;
-		}
-		if (level.getRandom().nextFloat() >= config.hurtSwapChance) {
 			return;
 		}
 
 		LivingEntity partner = pickPartner(level, entity, config);
 		if (partner != null) {
 			applySwap(level, entity, partner, config);
+		} else {
+			// 不换也得吱一声 —— 「明明掉了血却没反应」比换位本身更让人困惑（溺水报告的教训）
+			hintNoPartner(entity, level, config);
 		}
 	}
 
-	/**
-	 * 触发门槛：这次受伤的实体够不够格发起换位。
-	 *
-	 * <p>默认只有玩家受伤才触发（hurtSwapMobsCanTrigger=false）—— 生物之间的
-	 * 互咬（僵尸打村民、狼群围猎）不应该让附近玩家被动蹦迪。包内可见，自检直接断言。
-	 */
-	static boolean shouldTrigger(LivingEntity entity, SwapConfig config) {
-		return entity instanceof ServerPlayer || config.hurtSwapMobsCanTrigger;
+	/** 附近没有可交换对象时的提示，按玩家限频（5 秒一条），防止溺水每秒掉血刷屏。 */
+	private static void hintNoPartner(LivingEntity entity, ServerLevel level, SwapConfig config) {
+		if (!config.hurtSwapAnnounce || !(entity instanceof ServerPlayer sp)) {
+			return;
+		}
+		long now = level.getGameTime();
+		Long last = LAST_HINT_AT.get(sp.getUUID());
+		if (last != null && now - last < HINT_INTERVAL_TICKS) {
+			return;
+		}
+		LAST_HINT_AT.put(sp.getUUID(), now);
+		sp.sendSystemMessage(Component.literal(
+				"§7[随机换位] " + (int) config.hurtSwapMaxRadius + " 格内没有可交换的对象"));
 	}
 
 	/**
