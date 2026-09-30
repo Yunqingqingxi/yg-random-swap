@@ -47,6 +47,17 @@ public final class HurtSwap {
 	/** 限频表（内存态，零持久化 —— 关服即清）。 */
 	private static final java.util.Map<java.util.UUID, Long> LAST_HINT_AT = new java.util.HashMap<>();
 
+	/**
+	 * 公屏播报模板（随机轮换），{@code {player}} 换成触发玩家、{@code {target}} 换成换位对象。
+	 * 加新句子直接往里塞一行 —— 播报是喜剧效果的核心，别让文案变得一本正经。
+	 */
+	private static final List<String> BROADCAST_TEMPLATES = List.of(
+			"{player} 与 {target} 互换了人生",
+			"{player} 与 {target} 互换了位置",
+			"{player} 与 {target} 互换了空间",
+			"{player} 与 {target} 交换了生活",
+			"{player} 与 {target} 互换了命运");
+
 	private HurtSwap() {
 	}
 
@@ -170,14 +181,14 @@ public final class HurtSwap {
 			level.playSound(null, pa.x, pa.y, pa.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, 1.0f);
 			level.playSound(null, pb.x, pb.y, pb.z, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0f, 1.0f);
 
-			if (a instanceof ServerPlayer sp) {
-				sp.sendSystemMessage(Component.literal(
-						"§b[随机换位] 你与 §f" + b.getDisplayName().getString() + "§b 互换了位置！"));
-			}
-			if (b instanceof ServerPlayer sp) {
-				sp.sendSystemMessage(Component.literal(
-						"§b[随机换位] 你与 §f" + a.getDisplayName().getString() + "§b 互换了位置！"));
-			}
+			// 公屏播报：模板随机轮换，占位符替换后发给全服（不带任何前缀）
+			String template = BROADCAST_TEMPLATES.get(
+					level.getRandom().nextInt(BROADCAST_TEMPLATES.size()));
+			String message = template
+					.replace("{player}", "§f" + a.getDisplayName().getString() + "§b")
+					.replace("{target}", "§f" + b.getDisplayName().getString() + "§b");
+			level.getServer().getPlayerList().broadcastSystemMessage(
+					Component.literal("§b" + message), false);
 		}
 
 		if (SwapConfig.get().debugLog) {
