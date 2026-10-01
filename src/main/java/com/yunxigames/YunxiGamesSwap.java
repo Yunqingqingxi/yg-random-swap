@@ -1,6 +1,8 @@
 package com.yunxigames;
 
+import com.yunxigames.command.SwapCommand;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,10 @@ public class YunxiGamesSwap implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		SwapConfig.load();
+
+		// 游戏内命令：/yg swap on|off|status（判定实时读配置，启停立即生效）
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
+				SwapCommand.register(dispatcher));
 
 		HurtSwap.register();
 
